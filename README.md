@@ -1,5 +1,7 @@
 # Digital Chess Game
 
+![Chess Board Screenshot](images/board-screenshot.png)
+
 This project is a fun recreation of the classic chess game. It's built using Java and provides a graphical user interface for playing chess.
 
 ## How to Run
