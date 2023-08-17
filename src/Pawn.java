@@ -4,7 +4,7 @@
 public record Pawn(boolean isWhite) implements Piece {
 
     @Override
-    public boolean isValidMove(int currentX, int currentY, int newX, int newY, Piece[][] board) {
+    public boolean isValidMove(int currentX, int currentY, int newX, int newY, Piece[][] board, ChessBoard.CastlingState castlingState) {
         int forwardDirection = isWhite ? -1 : 1; // White Pawns move up, Black Pawns move down
         boolean isDestinationOccupiedSameColor = board[newX][newY] != null && board[newX][newY].isWhite() == this.isWhite;
         boolean isDestinationOccupiedOppositeColor = board[newX][newY] != null && board[newX][newY].isWhite() != this.isWhite;

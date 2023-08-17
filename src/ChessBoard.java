@@ -10,9 +10,12 @@ public class ChessBoard {
     private final Piece[][] pieces = new Piece[8][8];
     private final JFrame frame;
     private final JButton[][] buttons;
+    private final CastlingState castlingState = new CastlingState(false, false, false, false, false, false);
+
     private Piece selectedPiece = null;
     private int selectedX = -1;
     private int selectedY = -1;
+
 
     public ChessBoard() {
         frame = new JFrame("Chess");
@@ -72,6 +75,73 @@ public class ChessBoard {
         }
     }
 
+    private boolean isCheckmate(boolean isWhite) {
+        if (!isKingInCheck(isWhite)) {
+            return false; // Player is not in check, so cannot be in checkmate
+        }
+
+        // Check if there are any legal moves that would get the King out of check
+        Piece[][] tempPieces = new Piece[8][8];
+        for (int i = 0; i < 8; i++) {
+            for (int j = 0; j < 8; j++) {
+                Piece piece = pieces[i][j];
+                if (piece != null && piece.isWhite() == isWhite) {
+                    for (int x = 0; x < 8; x++) {
+                        for (int y = 0; y < 8; y++) {
+                            if (piece.isValidMove(i, j, x, y, pieces, castlingState)) {
+                                // Simulate the move
+                                System.arraycopy(pieces[i], 0, tempPieces[i], 0, 8);
+                                tempPieces[x][y] = tempPieces[i][j];
+                                tempPieces[i][j] = null;
+
+                                // Check if the King's square is still attacked after the move
+                                if (isSquareNotAttacked(x, y, isWhite)) {
+                                    return false; // There is a legal move that gets the King out of check
+                                }
+
+                                // Undo the simulated move
+                                System.arraycopy(tempPieces[i], 0, pieces[i], 0, 8);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return true; // No legal moves that get the King out of check, so player is in checkmate
+    }
+
+    private boolean isKingInCheck(boolean isWhite) {
+        // Find the King's position
+        for (int i = 0; i < 8; i++) {
+            for (int j = 0; j < 8; j++) {
+                Piece piece = pieces[i][j];
+                if (piece instanceof King && piece.isWhite() == isWhite) {
+                    // Check if the King's square is attacked
+                    return !isSquareNotAttacked(i, j, isWhite);
+                }
+            }
+        }
+        return false; // King not found, so it's not in check
+    }
+
+    private boolean isSquareNotAttacked(int x, int y, boolean isWhite) {
+        // Iterate through the board to check if any of the opponent's pieces can attack the given square
+        for (int i = 0; i < 8; i++) {
+            for (int j = 0; j < 8; j++) {
+                Piece piece = pieces[i][j];
+                if (piece != null && piece.isWhite() != isWhite && piece.isValidMove(i, j, x, y, pieces, castlingState)) {
+                    return false; // The square is attacked
+                }
+            }
+        }
+        return true; // The square is not attacked
+    }
+
+
+
+
+
     private class ButtonClickListener implements ActionListener {
         int x, y;
 
@@ -86,10 +156,15 @@ public class ChessBoard {
         }
 
         private void handleAction() {
+            System.out.println("Selected piece: " + selectedPiece);
+            System.out.println("Clicked on square (" + x + ", " + y + ")");
+
             Piece clickedPiece = pieces[x][y];
             if (selectedPiece != null) {
+                // We currently have a piece selected
                 handleSelectedPiece(clickedPiece);
             } else {
+                // We do not have a piece selected
                 handleUnselectedPiece(clickedPiece);
             }
             playClickSound();
@@ -97,8 +172,10 @@ public class ChessBoard {
 
         private void handleSelectedPiece(Piece clickedPiece) {
             if (clickedPiece != null && clickedPiece.isWhite() == selectedPiece.isWhite()) {
+                // Clicked on another piece of the same color
                 switchSelection(clickedPiece);
             } else {
+                // Clicked on an empty square or a square with an opposing piece
                 processMove(clickedPiece);
             }
         }
@@ -114,24 +191,54 @@ public class ChessBoard {
 
         private void processMove(Piece clickedPiece) {
             unhighlightSquares();
-            if (selectedPiece.isValidMove(selectedX, selectedY, x, y, pieces)) {
-                makeMove();
+            if (selectedPiece.isValidMove(selectedX, selectedY, x, y, pieces, castlingState)) {
+                // The selected piece can move to the clicked square
+
+
+
+                // Check if the move is a castling move
+                // Check if the move puts us in check
+
+
+
+                // TODO: ------------------ refactor this method ------------------
+                if (isKingInCheck(selectedPiece.isWhite())) {
+                    System.out.println("This move would put you in check. Please choose a different move.");
+                    return;
+                }
+
+                System.out.println("You can move the selected piece to this square.");
+                movePiece();
+
+                // Check if opposing King is in check / checkmate
+                if (isKingInCheck(!selectedPiece.isWhite())) {
+                    System.out.println("Opposing King is in check.");
+                    if (isCheckmate(!selectedPiece.isWhite())) {
+                        System.out.println("Checkmate! Game over.");
+                        showGameOverDialog();
+                    }
+                }
+
+                if (selectedPiece instanceof Pawn) {
+                    // Check if the Pawn has reached the other side of the board
+                    if (selectedPiece.isWhite() && x == 0 || !selectedPiece.isWhite() && x == 7) {
+                        // Promote the Pawn to a Queen
+                        pieces[x][y] = new Queen(selectedPiece.isWhite());
+                        setIcon(buttons[x][y], pieces[x][y]);
+                    }
+                }
+
+
+//                checkCheckmate();
             } else {
+                // The selected piece cannot move to the clicked square
                 System.out.println("You cannot move the selected piece to this square.");
             }
+
             resetSelectedPiece();
         }
 
-        private void makeMove() {
-            if (isKingInCheck(selectedPiece.isWhite())) {
-                System.out.println("This move would put you in check. Please choose a different move.");
-                return;
-            }
 
-            System.out.println("You can move the selected piece to this square.");
-            movePiece();
-            checkCheckmate();
-        }
 
         private void movePiece() {
             pieces[x][y] = selectedPiece;
@@ -205,80 +312,10 @@ public class ChessBoard {
             }
         }
 
-        // Method to check if a King is in check
-        private boolean isKingInCheck(boolean isWhite) {
-            // TODO: Implement this method
-            return false;
-            /*int kingX = -1, kingY = -1;
-
-            // Find the King's position
-            for (int i = 0; i < 8; i++) {
-                for (int j = 0; j < 8; j++) {
-                    Piece piece = pieces[i][j];
-                    if (piece instanceof King && piece.isWhite() == isWhite) {
-                        kingX = i;
-                        kingY = j;
-                        break;
-                    }
-                }
-            }
-
-            // Check if any opposing pieces can attack the King
-            for (int i = 0; i < 8; i++) {
-                for (int j = 0; j < 8; j++) {
-                    Piece piece = pieces[i][j];
-                    if (piece != null && piece.isWhite() != isWhite && piece.isValidMove(i, j, kingX, kingY, pieces)) {
-                        return true; // King is in check
-                    }
-                }
-            }
-
-            return false; // King is not in check*/
-        }
-
-        // Method to check if a player is in checkmate
-        private boolean isCheckmate(boolean isWhite) {
-            // TODO: Implement this method
-            return false;
-            /*if (!isKingInCheck(isWhite)) {
-                return false; // Player is not in check, so cannot be in checkmate
-            }
-
-            // Check if there are any legal moves that would get the King out of check
-            Piece[][] tempPieces = new Piece[8][8];
-            for (int i = 0; i < 8; i++) {
-                for (int j = 0; j < 8; j++) {
-                    Piece piece = pieces[i][j];
-                    if (piece != null && piece.isWhite() == isWhite) {
-                        for (int x = 0; x < 8; x++) {
-                            for (int y = 0; y < 8; y++) {
-                                if (piece.isValidMove(i, j, x, y, pieces)) {
-                                    // Simulate the move
-                                    System.arraycopy(pieces[i], 0, tempPieces[i], 0, 8);
-                                    tempPieces[x][y] = tempPieces[i][j];
-                                    tempPieces[i][j] = null;
-
-                                    // Check if the King is still in check after the move
-                                    if (!isKingInCheck(isWhite)) {
-                                        return false; // There is a legal move that gets the King out of check
-                                    }
-
-                                    // Undo the simulated move
-                                    System.arraycopy(tempPieces[i], 0, pieces[i], 0, 8);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            return true; // No legal moves that get the King out of check, so player is in checkmate*/
-        }
-
         private void highlightValidMoves() {
             for (int i = 0; i < 8; i++) {
                 for (int j = 0; j < 8; j++) {
-                    if (selectedPiece.isValidMove(selectedX, selectedY, i, j, pieces)) {
+                    if (selectedPiece.isValidMove(selectedX, selectedY, i, j, pieces, castlingState)) {
                         buttons[i][j].setBorder(BorderFactory.createLineBorder(Color.GREEN, 3)); // Set green border
                     }
                 }
@@ -294,6 +331,47 @@ public class ChessBoard {
                         buttons[i][j].setBackground(new Color(162, 92, 0, 255));
                     }
                     buttons[i][j].setBorder(BorderFactory.createEmptyBorder()); // Reset border
+                }
+            }
+        }
+    }
+
+    public class CastlingState {
+        public boolean whiteKingMoved;
+        public boolean blackKingMoved;
+        public boolean whiteLeftRookMoved;
+        public boolean whiteRightRookMoved;
+        public boolean blackLeftRookMoved;
+        public boolean blackRightRookMoved;
+
+        // Constructor
+        public CastlingState(boolean whiteKingMoved, boolean blackKingMoved, boolean whiteLeftRookMoved, boolean whiteRightRookMoved, boolean blackLeftRookMoved, boolean blackRightRookMoved) {
+            this.whiteKingMoved = whiteKingMoved;
+            this.blackKingMoved = blackKingMoved;
+            this.whiteLeftRookMoved = whiteLeftRookMoved;
+            this.whiteRightRookMoved = whiteRightRookMoved;
+            this.blackLeftRookMoved = blackLeftRookMoved;
+            this.blackRightRookMoved = blackRightRookMoved;
+        }
+
+        public boolean canCastle(boolean isWhite, boolean isKingSide) {
+            // Check if King is in check
+            if (isKingInCheck(isWhite)) {
+                System.out.println("You cannot castle while in check.");
+                return false;
+            }
+            // Check if King and Rook have moved and if the squares are attacked
+            if (isWhite) {
+                if (isKingSide) {
+                    return !whiteKingMoved && !whiteRightRookMoved && isSquareNotAttacked(7, 5, true) && isSquareNotAttacked(7, 6, true);
+                } else {
+                    return !whiteKingMoved && !whiteLeftRookMoved && isSquareNotAttacked(7, 3, true) && isSquareNotAttacked(7, 2, true) && isSquareNotAttacked(7, 1, true);
+                }
+            } else {
+                if (isKingSide) {
+                    return !blackKingMoved && !blackRightRookMoved && isSquareNotAttacked(0, 5, false) && isSquareNotAttacked(0, 7, false);
+                } else {
+                    return !blackKingMoved && !blackLeftRookMoved && isSquareNotAttacked(0, 3, false) && isSquareNotAttacked(0, 2, false) && isSquareNotAttacked(0, 1, false);
                 }
             }
         }
