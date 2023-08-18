@@ -195,13 +195,10 @@ public class ChessBoard {
                 // The selected piece can move to the clicked square
 
 
-
-                // Check if the move is a castling move
                 // Check if the move puts us in check
 
 
 
-                // TODO: ------------------ refactor this method ------------------
                 if (isKingInCheck(selectedPiece.isWhite())) {
                     System.out.println("This move would put you in check. Please choose a different move.");
                     return;
@@ -209,6 +206,14 @@ public class ChessBoard {
 
                 System.out.println("You can move the selected piece to this square.");
                 movePiece();
+
+                // Check if the move is a castling move
+                // if the King moved more than two squares, then move the rook as well
+                System.out.println("x: " + x + " y: " + y);
+                if (selectedPiece instanceof King && Math.abs(y - selectedY) > 1){
+                    System.out.println("Trying to castle. Swap the rook too.");
+                    castleRook(y > selectedY);
+                }
 
                 // Check if opposing King is in check / checkmate
                 if (isKingInCheck(!selectedPiece.isWhite())) {
@@ -237,12 +242,76 @@ public class ChessBoard {
 
             resetSelectedPiece();
         }
+        private void castleRook(Boolean isKingSide) {
+            System.out.println("selectedX: " + selectedX + " selectedY: " + selectedY);
+            int rookX, rookY;
+            int newRookX = selectedX;
+            boolean isWhite = selectedPiece.isWhite();
+
+            if (isKingSide) {
+                rookX = selectedX;
+                rookY = selectedY + 3; // Assuming the rook is 3 squares to the right of the king
+                pieces[newRookX][selectedY + 1] = new Rook(selectedPiece.isWhite());
+
+                if (isWhite) {
+                    castlingState.whiteRightRookMoved = true;
+                } else {
+                    castlingState.blackRightRookMoved = true;
+                }
+            } else {
+                rookX = selectedX;
+                rookY = selectedY - 4; // Assuming the rook is 4 squares to the left of the king
+                pieces[newRookX][selectedY - 1] = new Rook(selectedPiece.isWhite());
+
+                if (isWhite) {
+                    castlingState.whiteLeftRookMoved = true;
+                } else {
+                    castlingState.blackLeftRookMoved = true;
+                }
+            }
+
+            buttons[newRookX][rookY < selectedY ? selectedY - 1 : selectedY + 1].setIcon(buttons[rookX][rookY].getIcon()); // Update the button icon using the original rook's icon
+            setIcon(buttons[rookX][rookY], null);
+            pieces[rookX][rookY] = null; // Clear the original rook's place
+
+            System.out.println(castlingState);
+        }
 
 
 
         private void movePiece() {
+            updateCastlingState();
+            updatePiecePositions();
+            updateButtonIcons();
+        }
+
+        private void updateCastlingState() {
+            if (selectedPiece instanceof King || selectedPiece instanceof Rook) {
+                boolean isWhite = selectedPiece.isWhite();
+                boolean isKing = selectedPiece instanceof King;
+                boolean isRightRook = selectedPiece instanceof Rook && selectedY == 7;
+                boolean isLeftRook = selectedPiece instanceof Rook && selectedY == 0;
+
+                if (isWhite) {
+                    castlingState.whiteKingMoved = castlingState.whiteKingMoved || isKing;
+                    castlingState.whiteRightRookMoved = castlingState.whiteRightRookMoved || isRightRook;
+                    castlingState.whiteLeftRookMoved = castlingState.whiteLeftRookMoved || isLeftRook;
+                } else {
+                    castlingState.blackKingMoved = castlingState.blackKingMoved || isKing;
+                    castlingState.blackRightRookMoved = castlingState.blackRightRookMoved || isRightRook;
+                    castlingState.blackLeftRookMoved = castlingState.blackLeftRookMoved || isLeftRook;
+                }
+
+                System.out.println(castlingState);
+            }
+        }
+
+        private void updatePiecePositions() {
             pieces[x][y] = selectedPiece;
             pieces[selectedX][selectedY] = null;
+        }
+
+        private void updateButtonIcons() {
             setIcon(buttons[x][y], selectedPiece);
             setIcon(buttons[selectedX][selectedY], null);
         }
@@ -374,6 +443,18 @@ public class ChessBoard {
                     return !blackKingMoved && !blackLeftRookMoved && isSquareNotAttacked(0, 3, false) && isSquareNotAttacked(0, 2, false) && isSquareNotAttacked(0, 1, false);
                 }
             }
+        }
+
+        @Override
+        public String toString() {
+            return "CastlingState{" +
+                    "whiteKingMoved=" + whiteKingMoved +
+                    ", blackKingMoved=" + blackKingMoved +
+                    ", whiteLeftRookMoved=" + whiteLeftRookMoved +
+                    ", whiteRightRookMoved=" + whiteRightRookMoved +
+                    ", blackLeftRookMoved=" + blackLeftRookMoved +
+                    ", blackRightRookMoved=" + blackRightRookMoved +
+                    '}';
         }
     }
 }
