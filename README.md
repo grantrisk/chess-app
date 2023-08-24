@@ -18,7 +18,7 @@ This project is a fun recreation of the classic chess game. It's built using Jav
 - [x] Add sound effects
 - [x] Implement castling
 - [x] Add pawn promotion functionality
-- [ ] Implement en passant capture
+- [x] Implement en passant capture
 - [ ] Add an option to play against an AI opponent
 - [ ] Implement game save and load functionality
 - [ ] Add undo and redo move options

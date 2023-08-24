@@ -4,7 +4,7 @@
 public record King(boolean isWhite) implements Piece {
 
     @Override
-    public boolean isValidMove(int currentX, int currentY, int newX, int newY, Piece[][] board, ChessBoard.CastlingState castlingState) {
+    public boolean isValidMove(int currentX, int currentY, int newX, int newY, Piece[][] board, ChessBoard chessBoard) {
         int xDistance = Math.abs(newX - currentX);
         int yDistance = Math.abs(newY - currentY);
 
@@ -23,7 +23,7 @@ public record King(boolean isWhite) implements Piece {
                 }
             }
 
-            if (castlingState.canCastle(this.isWhite, newY > currentY)) {
+            if (chessBoard.castlingState.canCastle(this.isWhite, newY > currentY)) {
                 return true;
             }
         }

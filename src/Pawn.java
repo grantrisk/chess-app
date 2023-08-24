@@ -4,7 +4,7 @@
 public record Pawn(boolean isWhite) implements Piece {
 
     @Override
-    public boolean isValidMove(int currentX, int currentY, int newX, int newY, Piece[][] board, ChessBoard.CastlingState castlingState) {
+    public boolean isValidMove(int currentX, int currentY, int newX, int newY, Piece[][] board, ChessBoard chessBoard) {
         int forwardDirection = isWhite ? -1 : 1; // White Pawns move up, Black Pawns move down
         boolean isDestinationOccupiedSameColor = board[newX][newY] != null && board[newX][newY].isWhite() == this.isWhite;
         boolean isDestinationOccupiedOppositeColor = board[newX][newY] != null && board[newX][newY].isWhite() != this.isWhite;
@@ -19,11 +19,24 @@ public record Pawn(boolean isWhite) implements Piece {
             return true;
         }
 
+        // Check for en passant
+        if (newX == currentX + forwardDirection && Math.abs(newY - currentY) == 1 && board[newX][newY] == null) {
+            Piece enPassantPiece = board[currentX][newY];
+            if (enPassantPiece instanceof Pawn && enPassantPiece.isWhite() != this.isWhite) {
+                ChessBoard.Move lastMove = chessBoard.getLastMove();
+                /*if (lastMove != null && lastMove.piece() == enPassantPiece &&
+                        lastMove.fromX() == currentX - 2 * forwardDirection && lastMove.toX() == currentX &&
+                        lastMove.fromY() == newY && lastMove.toY() == newY) {*/
+                if (lastMove != null && lastMove.piece() == enPassantPiece) {
+                    return true;
+                }
+            }
+        }
+
+
         // Diagonal capture
         return newX == currentX + forwardDirection && Math.abs(newY - currentY) == 1 && isDestinationOccupiedOppositeColor;
     }
-
-
 
     @Override
     public String getImageName() {

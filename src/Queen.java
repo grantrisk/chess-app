@@ -4,10 +4,10 @@
 public record Queen(boolean isWhite) implements Piece {
 
     @Override
-    public boolean isValidMove(int currentX, int currentY, int newX, int newY, Piece[][] board, ChessBoard.CastlingState castlingState) {
+    public boolean isValidMove(int currentX, int currentY, int newX, int newY, Piece[][] board, ChessBoard chessBoard) {
         // Combining the logic of Rook and Bishop
-        return new Rook(isWhite).isValidMove(currentX, currentY, newX, newY, board, castlingState) ||
-                new Bishop(isWhite).isValidMove(currentX, currentY, newX, newY, board, castlingState);
+        return new Rook(isWhite).isValidMove(currentX, currentY, newX, newY, board, chessBoard) ||
+                new Bishop(isWhite).isValidMove(currentX, currentY, newX, newY, board, chessBoard);
     }
 
 

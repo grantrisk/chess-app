@@ -10,8 +10,8 @@ public class ChessBoard {
     private final Piece[][] pieces = new Piece[8][8];
     private final JFrame frame;
     private final JButton[][] buttons;
-    private final CastlingState castlingState = new CastlingState(false, false, false, false, false, false);
-
+    final CastlingState castlingState = new CastlingState(false, false, false, false, false, false);
+    private Move lastMove = null;
     private Piece selectedPiece = null;
     private int selectedX = -1;
     private int selectedY = -1;
@@ -47,7 +47,7 @@ public class ChessBoard {
         button.addActionListener(new ButtonClickListener(i, j));
         button.setOpaque(true);
         button.setBorderPainted(true);
-        Color bgColor = ((i + j) % 2 == 0) ? Color.WHITE : new Color(162, 92, 0, 255);
+        Color bgColor = ((i + j) % 2 == 0) ? Color.WHITE : new Color(0, 49, 255, 255);
         button.setBackground(bgColor);
         button.setBorder(BorderFactory.createLineBorder(bgColor, 3));
         return button;
@@ -88,7 +88,7 @@ public class ChessBoard {
                 if (piece != null && piece.isWhite() == isWhite) {
                     for (int x = 0; x < 8; x++) {
                         for (int y = 0; y < 8; y++) {
-                            if (piece.isValidMove(i, j, x, y, pieces, castlingState)) {
+                            if (piece.isValidMove(i, j, x, y, pieces, this)) {
                                 // Simulate the move
                                 System.arraycopy(pieces[i], 0, tempPieces[i], 0, 8);
                                 tempPieces[x][y] = tempPieces[i][j];
@@ -130,7 +130,7 @@ public class ChessBoard {
         for (int i = 0; i < 8; i++) {
             for (int j = 0; j < 8; j++) {
                 Piece piece = pieces[i][j];
-                if (piece != null && piece.isWhite() != isWhite && piece.isValidMove(i, j, x, y, pieces, castlingState)) {
+                if (piece != null && piece.isWhite() != isWhite && piece.isValidMove(i, j, x, y, pieces, this)) {
                     return false; // The square is attacked
                 }
             }
@@ -138,8 +138,13 @@ public class ChessBoard {
         return true; // The square is not attacked
     }
 
+    Move getLastMove() {
+        return lastMove;
+    }
 
 
+    public record Move(Piece piece, int fromX, int fromY, int toX, int toY) {
+    }
 
 
     private class ButtonClickListener implements ActionListener {
@@ -191,12 +196,11 @@ public class ChessBoard {
 
         private void processMove(Piece clickedPiece) {
             unhighlightSquares();
-            if (selectedPiece.isValidMove(selectedX, selectedY, x, y, pieces, castlingState)) {
+            if (selectedPiece.isValidMove(selectedX, selectedY, x, y, pieces, ChessBoard.this)) {
                 // The selected piece can move to the clicked square
 
 
                 // Check if the move puts us in check
-
 
 
                 if (isKingInCheck(selectedPiece.isWhite())) {
@@ -207,12 +211,22 @@ public class ChessBoard {
                 System.out.println("You can move the selected piece to this square.");
                 movePiece();
 
+                lastMove = new Move(selectedPiece, selectedX, selectedY, x, y);
+
                 // Check if the move is a castling move
                 // if the King moved more than two squares, then move the rook as well
                 System.out.println("x: " + x + " y: " + y);
                 if (selectedPiece instanceof King && Math.abs(y - selectedY) > 1){
                     System.out.println("Trying to castle. Swap the rook too.");
                     castleRook(y > selectedY);
+                }
+
+                // Check if the move is an en passant move
+                // if the Pawn moved diagonally and the destination square is empty, then remove the Pawn that was captured
+                if (selectedPiece instanceof Pawn && lastMove.fromY() != lastMove.toY() && lastMove.piece() == pieces[x][y]) {
+                    System.out.println("Trying to capture en passant. Remove the captured Pawn.");
+                    pieces[x + (selectedPiece.isWhite() ? 1 : -1)][y] = null;
+                    setIcon(buttons[x + (selectedPiece.isWhite() ? 1 : -1)][y], null);
                 }
 
                 // Check if opposing King is in check / checkmate
@@ -384,7 +398,7 @@ public class ChessBoard {
         private void highlightValidMoves() {
             for (int i = 0; i < 8; i++) {
                 for (int j = 0; j < 8; j++) {
-                    if (selectedPiece.isValidMove(selectedX, selectedY, i, j, pieces, castlingState)) {
+                    if (selectedPiece.isValidMove(selectedX, selectedY, i, j, pieces, ChessBoard.this)) {
                         buttons[i][j].setBorder(BorderFactory.createLineBorder(Color.GREEN, 3)); // Set green border
                     }
                 }
@@ -397,7 +411,7 @@ public class ChessBoard {
                     if ((i + j) % 2 == 0) {
                         buttons[i][j].setBackground(Color.WHITE);
                     } else {
-                        buttons[i][j].setBackground(new Color(162, 92, 0, 255));
+                        buttons[i][j].setBackground(new Color(0, 49, 255, 255));
                     }
                     buttons[i][j].setBorder(BorderFactory.createEmptyBorder()); // Reset border
                 }

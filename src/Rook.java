@@ -4,7 +4,7 @@
 public record Rook(boolean isWhite) implements Piece {
 
     @Override
-    public boolean isValidMove(int currentX, int currentY, int newX, int newY, Piece[][] board, ChessBoard.CastlingState castlingState) {
+    public boolean isValidMove(int currentX, int currentY, int newX, int newY, Piece[][] board, ChessBoard chessBoard) {
         boolean isDestinationOccupiedSameColor = board[newX][newY] != null && board[newX][newY].isWhite() == this.isWhite;
 
         if (isDestinationOccupiedSameColor || (currentX != newX && currentY != newY)) {
